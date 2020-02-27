@@ -1,10 +1,9 @@
 {
   "compilerOptions": {
     "module": "commonjs",
+    "target": "es5",
     "outDir": "lib",
-    "lib": [
-      "es2015"
-    ],
+    "sourceMap": true,
     "noImplicitAny": true
   },
   "include": [

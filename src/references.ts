@@ -6,8 +6,8 @@ const references: Array<Reference> = [
     collection: 'emails',
     type: 'emails',
     index: 'emails',
-    include: ['snippet', 'from', 'id'],
-    transform: (data, parent) => ({
+    include: ['snippet', 'id'],
+    /*transform: (data, parent) => ({
       ...data, from: () => {
         data.payload.headers.map((h: any) => {
           if (h.name === 'From') {
@@ -15,7 +15,7 @@ const references: Array<Reference> = [
           }
         })
       }
-    })
+    }) */
   }
 ]
 
