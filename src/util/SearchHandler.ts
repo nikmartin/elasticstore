@@ -29,12 +29,12 @@ export class SearchHandler {
   }
 
   private handleSnapshot = (snap: QuerySnapshot) => {
-    for (const change of snap.docChanges) {
+    snap.docChanges().forEach(change => {
       const type = change.type as FirebaseDocChangeType
       if (type === "added") {
         this.process(change.doc)
       }
-    }
+    });
   }
 
   private process = (snap: QueryDocumentSnapshot) => {
@@ -69,7 +69,7 @@ export class SearchHandler {
     } else {
       // coeerce into a map instead of an array
       if (response.hits && response.hits.hits) {
-        const temp : any = {}
+        const temp: any = {}
         for (const hit of response.hits.hits) {
           temp[hit._id] = hit
         }

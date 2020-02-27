@@ -67,7 +67,8 @@ export default class FirestoreCollectionHandler {
   }
 
   private handleBindingSubcollection = async (snap: admin.firestore.QuerySnapshot) => {
-    for (const change of snap.docChanges) {
+
+    snap.docChanges().forEach(change => {
       const changeType: FirebaseDocChangeType = change.type
       if (changeType === 'added') {
         let subref = admin.firestore().collection(`${this.record.collection}/${change.doc.id}/${this.record.subcollection}`)
@@ -92,13 +93,13 @@ export default class FirestoreCollectionHandler {
           this.listeners[change.doc.id].call()
         }
       }
-    }
+    });
   }
 
   private handleSnapshot = (parentSnap?: admin.firestore.DocumentSnapshot) => {
     return (snap: admin.firestore.QuerySnapshot) => {
 
-      for (const change of snap.docChanges) {
+      snap.docChanges().forEach(change => {
         const changeType: FirebaseDocChangeType = change.type
 
         const index = typeof this.record.index === 'function' ? this.record.index.call(this, snap, parentSnap) : this.record.index
@@ -115,7 +116,7 @@ export default class FirestoreCollectionHandler {
             this.handleRemoved(change.doc, index, type)
             break;
         }
-      }
+      });
     }
   }
 
