@@ -7,6 +7,7 @@ const references: Array<Reference> = [
     type: 'emails',
     index: 'emails',
     include: ['snippet', 'id'],
+    //builder: (ref) => ref.where('labelIds', 'array-contains', 'Label_1359657504182212462'),
     /*transform: (data, parent) => ({
       ...data, from: () => {
         data.payload.headers.map((h: any) => {

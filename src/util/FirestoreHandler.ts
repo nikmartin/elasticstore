@@ -20,20 +20,16 @@ export default class FirestoreCollectionHandler {
   private ref: admin.firestore.Query
   private listeners: { [key: string]: any }
   private doesIndexExist: boolean = false
-
+  private PAGE_SIZE = 250;
   constructor(client: Client, record: Reference) {
     this.listeners = {}
     this.record = record
     this.client = client
 
-    this.ref = admin.firestore().collection(this.record.collection)
-
+    //this.ref = admin.firestore().collection(this.record.collection).
     // Build new root query (add where clauses, etc.)
-    if (this.record.builder) {
-      this.ref = this.record.builder.call(this, this.ref)
-    }
-
     this.bind()
+
   }
 
   private bind = async () => {
@@ -62,8 +58,25 @@ export default class FirestoreCollectionHandler {
         include: [ ${this.record.include ? this.record.include.join(', ') : ''} ]
         exclude: [ ${this.record.exclude ? this.record.exclude.join(', ') : ''} ]
       `))
-      this.ref.onSnapshot(this.handleSnapshot())
+      this.recurse('0')
     }
+  }
+  private recurse(idx: string) {
+    this.ref = admin.firestore().collection(this.record.collection);
+
+    let qryRef;
+    if (this.record.builder) {
+      qryRef = this.record.builder.call(this, this.ref); // 
+    }
+    if (!qryRef) {
+      qryRef = this.ref;
+    }
+    qryRef
+      .orderBy(admin.firestore.FieldPath.documentId())
+      .startAfter(idx)
+      .limit(this.PAGE_SIZE)
+      .onSnapshot(this.handleSnapshot());
+
   }
 
   private handleBindingSubcollection = async (snap: admin.firestore.QuerySnapshot) => {
@@ -99,6 +112,8 @@ export default class FirestoreCollectionHandler {
   private handleSnapshot = (parentSnap?: admin.firestore.DocumentSnapshot) => {
     return (snap: admin.firestore.QuerySnapshot) => {
 
+      let idx = snap.docs[snap.docs.length - 1].id;
+      const promAry: any[] = [];
       snap.docChanges().forEach(change => {
         const changeType: FirebaseDocChangeType = change.type
 
@@ -107,21 +122,35 @@ export default class FirestoreCollectionHandler {
 
         switch (changeType) {
           case "added":
-            this.handleAdded(change.doc, parentSnap, index, type)
+            promAry.push(this.handleAdded(change.doc, parentSnap, index, type))
             break;
           case "modified":
-            this.handleModified(change.doc, parentSnap, index, type)
+            promAry.push(this.handleModified(change.doc, parentSnap, index, type))
             break;
           case "removed":
-            this.handleRemoved(change.doc, index, type)
+            promAry.push(this.handleRemoved(change.doc, index, type))
             break;
         }
+
       });
+      Promise.all(promAry).then(res => {
+        if (snap.docs.length === this.PAGE_SIZE) {
+          this.recurse(idx);
+        }
+      }).catch(err => {
+        console.log(err);
+        this.recurse(idx);
+      });
+
     }
   }
 
-  private handleAdded = async (doc: admin.firestore.DocumentSnapshot, parentSnap: admin.firestore.DocumentSnapshot, index: string, type: string) => {
-    let body: any = this.filter(doc.data())
+  private handleAdded = async (
+    doc: admin.firestore.DocumentSnapshot,
+    parentSnap: admin.firestore.DocumentSnapshot,
+    index: string,
+    type: string) => {
+    let body: any = this.filter(doc.data());
 
     // Filtering has excluded this record
     if (!body) return
